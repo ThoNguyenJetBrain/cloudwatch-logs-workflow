@@ -1,14 +1,14 @@
 name: "Check AWS Logs"
 
 on:
-  workflow_dispatch:  # Cho phép chạy thủ công
+  workflow_dispatch:
 
 jobs:
   check-aws-logs:
     runs-on: ubuntu-latest
 
     env:
-      AWS_REGION: ap-southeast-1
+      AWS_REGION: "ap-southeast-1"
       LOG_GROUP_NAME: "/aws/lambda/test-S3-lambda-first"
       SEARCH_STRING: "ERROR"
       LIMIT: 5
@@ -17,27 +17,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ✅ Cấu hình AWS credentials từ GitHub Secrets
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: $AWS_REGION
+          aws-region: "ap-southeast-1"  # ✅ Truyền giá trị trực tiếp
 
-      # ✅ Kiểm tra quyền truy cập AWS
       - name: Verify AWS Authentication
         run: aws sts get-caller-identity
 
-      # ✅ Liệt kê Log Groups trong AWS CloudWatch
       - name: List Log Groups
-        run: aws logs describe-log-groups --region $AWS_REGION
+        run: aws logs describe-log-groups --region "ap-southeast-1"
 
-      # ✅ Truy vấn logs từ CloudWatch Logs
       - name: Fetch CloudWatch Logs
         run: |
           aws logs filter-log-events \
             --log-group-name "$LOG_GROUP_NAME" \
             --limit "$LIMIT" \
             --filter-pattern "$SEARCH_STRING" \
-            --region "$AWS_REGION"
+            --region "ap-southeast-1"
