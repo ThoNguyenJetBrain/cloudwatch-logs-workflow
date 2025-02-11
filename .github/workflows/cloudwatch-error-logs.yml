@@ -107,6 +107,6 @@ jobs:
 
       - name: Get query results
         run: |
-          aws logs get-query-results --query-id "$QUERY_ID" \
+          aws logs get-query-results --query-id ${{ env.QUERY_ID }} \
           --output table \
           --region ap-southeast-1
