@@ -1,0 +1,54 @@
+name: Fetch CloudWatch Error Logs
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_items:
+        description: 'Số lượng items tối đa trả về'
+        required: true
+        default: '10'
+      search_string:
+        description: 'Chuỗi cần tìm trong @message'
+        required: true
+
+jobs:
+  fetch-cloudwatch-logs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1  # Thay bằng region của bạn
+
+      - name: Fetch CloudWatch Logs
+        run: |
+          LOG_GROUP_NAME="/aws/lambda/my-log-group"  # Thay bằng Log Group của bạn
+          SEARCH_STRING="${{ github.event.inputs.search_string }}"
+          MAX_ITEMS="${{ github.event.inputs.max_items }}"
+
+          QUERY="fields @timestamp, @message | filter level =~ /ERROR|error/ and @message like '${SEARCH_STRING}' | sort @timestamp desc | limit ${MAX_ITEMS}"
+
+          QUERY_ID=$(aws logs start-query --log-group-name "$LOG_GROUP_NAME" --query-string "$QUERY" --start-time $(date -d '5 minutes ago' +%s) --end-time $(date +%s) --query 'queryId' --output text)
+
+          echo "Đợi kết quả truy vấn..."
+          sleep 5
+
+          RESULTS=$(aws logs get-query-results --query-id "$QUERY_ID")
+
+          echo "Kết quả truy vấn:"
+          echo "$RESULTS"
+
+          # Lưu kết quả vào file JSON
+          echo "$RESULTS" > cloudwatch_logs.json
+
+      - name: Upload log file as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: cloudwatch_logs
+          path: cloudwatch_logs.json
