@@ -36,17 +36,29 @@ jobs:
         run: |
           START_TIME="${{ github.event.inputs.start_time }}"
           END_TIME="${{ github.event.inputs.end_time }}"
-          
+
+          # Kiểm tra nếu biến input rỗng
+          if [[ -z "$START_TIME" || -z "$END_TIME" ]]; then
+            echo "❌ ERROR: start_time hoặc end_time không được để trống!"
+            exit 1
+          fi
+
           # Chuyển đổi thời gian từ format YYYY-MM-DD HH:MM:SS UTC sang epoch time (giây)
-          START_EPOCH=$(date -u -d "$START_TIME" +%s)
-          END_EPOCH=$(date -u -d "$END_TIME" +%s)
-          
+          START_EPOCH=$(date -u -d "$START_TIME" +%s 2>/dev/null || echo "")
+          END_EPOCH=$(date -u -d "$END_TIME" +%s 2>/dev/null || echo "")
+
+          # Kiểm tra nếu chuyển đổi thất bại
+          if [[ -z "$START_EPOCH" || -z "$END_EPOCH" ]]; then
+            echo "❌ ERROR: start_time hoặc end_time không hợp lệ! Vui lòng nhập đúng format YYYY-MM-DD HH:MM:SS UTC"
+            exit 1
+          fi
+
           echo "Start Time (Epoch): $START_EPOCH"
           echo "End Time (Epoch): $END_EPOCH"
-          
+
           echo "START_EPOCH=$START_EPOCH" >> $GITHUB_ENV
           echo "END_EPOCH=$END_EPOCH" >> $GITHUB_ENV
-  
+
       - name: Fetch CloudWatch Logs
         run: |
           LOG_GROUP_NAME="/aws/lambda/test-S3-lambda-first"
@@ -55,7 +67,7 @@ jobs:
 
           QUERY="fields @timestamp, @message | filter level =~ /ERROR|error/ and @message like '${SEARCH_STRING}' | sort @timestamp desc | limit ${MAX_ITEMS}"
 
-          QUERY_ID=$(aws logs start-query --log-group-name "$LOG_GROUP_NAME" --query-string "$QUERY" --start-time "$START_TIME_EPOCH" --end-time "$END_TIME_EPOCH" --query 'queryId' --output text)
+          QUERY_ID=$(aws logs start-query --log-group-name "$LOG_GROUP_NAME" --query-string "$QUERY" --start-time "$START_EPOCH" --end-time "$END_EPOCH" --query 'queryId' --output text)
 
           echo "Đợi kết quả truy vấn..."
           sleep 5
@@ -63,7 +75,7 @@ jobs:
           # Lấy kết quả truy vấn, đảm bảo lấy đúng JSON format
           RESULTS_JSON=$(aws logs get-query-results --query-id "$QUERY_ID")
 
-          # Xử lý dữ liệu trả về, chỉ lấy giá trị logs để tránh lỗi format
+          # Xử lý dữ liệu trả về, chỉ lấy phần logs
           LOG_RESULTS=$(echo "$RESULTS_JSON" | jq -c '.results')
 
           echo "Dữ liệu logs đã lấy được:"
