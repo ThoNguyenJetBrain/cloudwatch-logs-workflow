@@ -10,6 +10,12 @@ on:
       search_string:
         description: 'Chuỗi cần tìm trong @message'
         required: true
+      start_time:
+        description: 'Thời gian bắt đầu (YYYY-MM-DD HH:MM:SS UTC)'
+        required: true
+      end_time:
+        description: 'Thời gian kết thúc (YYYY-MM-DD HH:MM:SS UTC)'
+        required: true
 
 jobs:
   fetch-cloudwatch-logs:
@@ -34,11 +40,11 @@ jobs:
 
           QUERY="fields @timestamp, @message | filter level =~ /ERROR|error/ and @message like '${SEARCH_STRING}' | sort @timestamp desc | limit ${MAX_ITEMS}"
 
-          QUERY_ID=$(aws logs start-query --log-group-name "$LOG_GROUP_NAME" --query-string "$QUERY" --start-time $(date -d '5 minutes ago' +%s) --end-time $(date +%s) --query 'queryId' --output text)
+          QUERY_ID=$(aws logs start-query --log-group-name "$LOG_GROUP_NAME" --query-string "$QUERY" --start-time "$START_TIME_EPOCH" --end-time "$END_TIME_EPOCH" --query 'queryId' --output text)
 
           echo "Đợi kết quả truy vấn..."
           sleep 5
-          
+
           # Lấy kết quả truy vấn, đảm bảo lấy đúng JSON format
           RESULTS_JSON=$(aws logs get-query-results --query-id "$QUERY_ID")
 
