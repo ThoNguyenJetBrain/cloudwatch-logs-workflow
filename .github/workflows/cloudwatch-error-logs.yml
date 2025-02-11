@@ -94,12 +94,9 @@ jobs:
 
           # Chuyển đổi JSON thành bảng
           echo "$LOG_RESULTS" | jq -r '
-            ["Timestamp", "Message"],
-            (.[] | {
-              timestamp: (.[] | select(.field=="@timestamp") | .value),
-              message: (.[] | select(.field=="@message") | .value)
-            }) | 
-            [.timestamp, .message] | @tsv' | column -t -s $'\t'
+          ["Field", "Value"],
+          (.[] | .[] | {field: .field, value: .value}) |
+          ["| " + .field + " | " + .value + " |"] | @tsv' | column -t -s $'\t'
 
           echo "LOG_RESULTS=$LOG_RESULTS" >> $GITHUB_ENV
 
