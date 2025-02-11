@@ -35,4 +35,5 @@ jobs:
           aws logs filter-log-events \
             --log-group-name "$LOG_GROUP_NAME" \
             --limit "$LIMIT" \
+            --filter-pattern "$SEARCH_STRING" \
             --region "ap-southeast-1"
