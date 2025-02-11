@@ -5,17 +5,17 @@ on:
     inputs:
       max_items:
         description: 'Số lượng items tối đa trả về'
-        required: true
+        #required: true
         default: '10'
       search_string:
         description: 'Chuỗi cần tìm trong @message'
-        required: true
+        #required: true
       start_time:
         description: 'Thời gian bắt đầu (YYYY-MM-DD HH:MM:SS UTC)'
-        required: true
+        #required: true
       end_time:
         description: 'Thời gian kết thúc (YYYY-MM-DD HH:MM:SS UTC)'
-        required: true
+        #required: true
 
 jobs:
   fetch-cloudwatch-logs:
