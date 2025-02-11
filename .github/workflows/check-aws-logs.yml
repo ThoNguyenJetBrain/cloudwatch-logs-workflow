@@ -10,7 +10,7 @@ jobs:
     env:
       AWS_REGION: "ap-southeast-1"
       LOG_GROUP_NAME: "/aws/lambda/test-S3-lambda-first"
-      SEARCH_STRING: "ERROR"
+      SEARCH_STRING: "INIT_START"
       LIMIT: 5
 
     steps:
