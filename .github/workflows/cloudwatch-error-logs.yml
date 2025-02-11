@@ -44,7 +44,6 @@ jobs:
           echo "Kết quả truy vấn:"
           echo "$RESULTS"
 
-# Xuất kết quả để dùng ở bước sau
           echo "LOG_RESULTS=$RESULTS" >> $GITHUB_ENV
 
       - name: Use log data
