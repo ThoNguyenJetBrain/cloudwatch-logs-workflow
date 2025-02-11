@@ -1,39 +1,39 @@
 name: "Check AWS Logs"
 
 on:
-  workflow_dispatch:  # Cho phép chạy workflow thủ công
+  workflow_dispatch:  # Cho phép chạy thủ công
 
 jobs:
   check-aws-logs:
     runs-on: ubuntu-latest
 
     env:
-      AWS_REGION: ap-southeast-1  # Thay thế nếu cần region khác
+      AWS_REGION: ap-southeast-1
       LOG_GROUP_NAME: "/aws/lambda/test-S3-lambda-first"
-      SEARCH_STRING: "ERROR"  # Chuỗi cần tìm trong logs
-      LIMIT: 5  # Số lượng record muốn lấy
+      SEARCH_STRING: "ERROR"
+      LIMIT: 5
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Kiểm tra biến môi trường trong GitHub Actions
-      - name: Debug Environment Variables
-        run: env
+      # ✅ Cấu hình AWS credentials từ GitHub Secrets
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: $AWS_REGION
 
-      # Kiểm tra xem AWS Region có được thiết lập đúng không
-      - name: Check AWS Region
-        run: echo "AWS Region is $AWS_REGION"
-
-      # Kiểm tra AWS credentials có hoạt động không
+      # ✅ Kiểm tra quyền truy cập AWS
       - name: Verify AWS Authentication
         run: aws sts get-caller-identity
 
-      # Kiểm tra danh sách log groups trong AWS CloudWatch
+      # ✅ Liệt kê Log Groups trong AWS CloudWatch
       - name: List Log Groups
         run: aws logs describe-log-groups --region $AWS_REGION
 
-      # Truy vấn logs từ CloudWatch Logs với bộ lọc ERROR
+      # ✅ Truy vấn logs từ CloudWatch Logs
       - name: Fetch CloudWatch Logs
         run: |
           aws logs filter-log-events \
