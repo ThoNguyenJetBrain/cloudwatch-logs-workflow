@@ -104,3 +104,9 @@ jobs:
         run: |
           echo "Kết quả logs đã xử lý:"
           echo "$LOG_RESULTS"
+
+      - name: Get query results
+        run: |
+          aws logs get-query-results --query-id "$QUERY_ID" \
+          --output table \
+          --region ap-southeast-1
