@@ -38,7 +38,7 @@ jobs:
         run: echo "AWS Region is $AWS_REGION"
       - name: Test AWS CLI
         run: aws sts get-caller-identity
-        
+
       - name: Convert Start Time and End Time to Epoch
         run: |
           START_TIME="${{ github.event.inputs.start_time }}"
@@ -68,42 +68,38 @@ jobs:
 
           ESCAPED_SEARCH_STRING=$(echo "$SEARCH_STRING" | sed 's/"/\\"/g')
 
-          QUERY="fields @timestamp, @message | filter @message like 'abc' or @message like 'report' or @message like \"${ESCAPED_SEARCH_STRING}\" | sort @timestamp desc | limit ${MAX_ITEMS}"
+          QUERY="fields @timestamp, @message | filter (@message like 'abc' or @message like 'report' or @message like '${ESCAPED_SEARCH_STRING}') | sort @timestamp desc | limit ${MAX_ITEMS}"
 
           QUERY_ID=$(aws logs start-query --log-group-name "$LOG_GROUP_NAME" --query-string "$QUERY" --start-time "$START_EPOCH" --end-time "$END_EPOCH" --query 'queryId' --output text)
 
+          echo "QUERY_ID=$QUERY_ID" >> $GITHUB_ENV
           echo "Đợi kết quả truy vấn..."
           sleep 5
 
-          # Chờ truy vấn hoàn thành (tối đa 60 giây)
           for i in {1..12}; do
             QUERY_STATUS=$(aws logs get-query-results --query-id "$QUERY_ID" --query 'status' --output text)
             echo "Query status: $QUERY_STATUS"
             if [[ "$QUERY_STATUS" == "Complete" ]]; then
               break
+            elif [[ "$QUERY_STATUS" == "Failed" || "$QUERY_STATUS" == "Cancelled" ]]; then
+              echo "❌ ERROR: Query failed or was cancelled!"
+              exit 1
             fi
             sleep 5
           done
 
           RESULTS_JSON=$(aws logs get-query-results --query-id "$QUERY_ID")
-
           LOG_RESULTS=$(echo "$RESULTS_JSON" | jq -c '.results')
 
           echo "Dữ liệu logs đã lấy được:"
           echo "$LOG_RESULTS"
-
-          # Chuyển đổi JSON thành bảng
-          echo "$LOG_RESULTS" | jq -r '
-          ["Field", "Value"],
-          (.[] | .[] | {field: .field, value: .value}) |
-          ["| " + .field + " | " + .value + " |"] | @tsv' | column -t -s $'\t'
 
           echo "LOG_RESULTS=$LOG_RESULTS" >> $GITHUB_ENV
 
       - name: Use log data
         run: |
           echo "Kết quả logs đã xử lý:"
-          echo "$LOG_RESULTS"
+          echo "${{ env.LOG_RESULTS }}"
 
       - name: Get query results
         run: |
