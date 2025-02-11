@@ -44,24 +44,18 @@ jobs:
           START_TIME="${{ github.event.inputs.start_time }}"
           END_TIME="${{ github.event.inputs.end_time }}"
 
-          # Kiểm tra nếu biến input rỗng
           if [[ -z "$START_TIME" || -z "$END_TIME" ]]; then
             echo "❌ ERROR: start_time hoặc end_time không được để trống!"
             exit 1
           fi
 
-          # Chuyển đổi thời gian từ format YYYY-MM-DD HH:MM:SS UTC sang epoch time (giây)
-          START_EPOCH=$(date -u -d "$START_TIME" +%s 2>/dev/null || echo "")
-          END_EPOCH=$(date -u -d "$END_TIME" +%s 2>/dev/null || echo "")
+          START_EPOCH=$(date -u --date="$START_TIME" +%s 2>/dev/null || echo "")
+          END_EPOCH=$(date -u --date="$END_TIME" +%s 2>/dev/null || echo "")
 
-          # Kiểm tra nếu chuyển đổi thất bại
           if [[ -z "$START_EPOCH" || -z "$END_EPOCH" ]]; then
             echo "❌ ERROR: start_time hoặc end_time không hợp lệ! Vui lòng nhập đúng format YYYY-MM-DD HH:MM:SS UTC"
             exit 1
           fi
-
-          echo "Start Time (Epoch): $START_EPOCH"
-          echo "End Time (Epoch): $END_EPOCH"
 
           echo "START_EPOCH=$START_EPOCH" >> $GITHUB_ENV
           echo "END_EPOCH=$END_EPOCH" >> $GITHUB_ENV
@@ -72,23 +66,32 @@ jobs:
           SEARCH_STRING="${{ github.event.inputs.search_string }}"
           MAX_ITEMS="${{ github.event.inputs.max_items }}"
 
-          QUERY="fields @timestamp, @message | filter level =~ /ERROR|error/ and @message like '${SEARCH_STRING}' | sort @timestamp desc | limit ${MAX_ITEMS}"
+          ESCAPED_SEARCH_STRING=$(echo "$SEARCH_STRING" | sed 's/"/\\"/g')
+
+          QUERY="fields @timestamp, @message | filter level =~ /ERROR|error/ and @message like \"${ESCAPED_SEARCH_STRING}\" | sort @timestamp desc | limit ${MAX_ITEMS}"
 
           QUERY_ID=$(aws logs start-query --log-group-name "$LOG_GROUP_NAME" --query-string "$QUERY" --start-time "$START_EPOCH" --end-time "$END_EPOCH" --query 'queryId' --output text)
 
           echo "Đợi kết quả truy vấn..."
           sleep 5
 
-          # Lấy kết quả truy vấn, đảm bảo lấy đúng JSON format
+          # Chờ truy vấn hoàn thành (tối đa 60 giây)
+          for i in {1..12}; do
+            QUERY_STATUS=$(aws logs get-query-results --query-id "$QUERY_ID" --query 'status' --output text)
+            echo "Query status: $QUERY_STATUS"
+            if [[ "$QUERY_STATUS" == "Complete" ]]; then
+              break
+            fi
+            sleep 5
+          done
+
           RESULTS_JSON=$(aws logs get-query-results --query-id "$QUERY_ID")
 
-          # Xử lý dữ liệu trả về, chỉ lấy phần logs
           LOG_RESULTS=$(echo "$RESULTS_JSON" | jq -c '.results')
 
           echo "Dữ liệu logs đã lấy được:"
           echo "$LOG_RESULTS"
 
-          # Xuất biến ENV để dùng trong bước tiếp theo
           echo "LOG_RESULTS=$LOG_RESULTS" >> $GITHUB_ENV
 
       - name: Use log data
