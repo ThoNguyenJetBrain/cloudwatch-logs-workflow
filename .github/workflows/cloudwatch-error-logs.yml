@@ -38,15 +38,20 @@ jobs:
 
           echo "Đợi kết quả truy vấn..."
           sleep 5
+          
+          # Lấy kết quả truy vấn, đảm bảo lấy đúng JSON format
+          RESULTS_JSON=$(aws logs get-query-results --query-id "$QUERY_ID")
 
-          RESULTS=$(aws logs get-query-results --query-id "$QUERY_ID")
+          # Xử lý dữ liệu trả về, chỉ lấy giá trị logs để tránh lỗi format
+          LOG_RESULTS=$(echo "$RESULTS_JSON" | jq -c '.results')
 
-          echo "Kết quả truy vấn:"
-          echo "$RESULTS"
+          echo "Dữ liệu logs đã lấy được:"
+          echo "$LOG_RESULTS"
 
-          echo "LOG_RESULTS=$RESULTS" >> $GITHUB_ENV
+          # Xuất biến ENV để dùng trong bước tiếp theo
+          echo "LOG_RESULTS=$LOG_RESULTS" >> $GITHUB_ENV
 
       - name: Use log data
         run: |
-          echo "Dữ liệu log lấy được:"
+          echo "Kết quả logs đã xử lý:"
           echo "$LOG_RESULTS"
