@@ -1,4 +1,4 @@
-name: Fetch CloudWatch Error Logs
+name: Fetch CloudWatch Error Logs -V2
 
 on:
   workflow_dispatch:
@@ -22,6 +22,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Debug Environemnt variables
+        run: env
+    
       - name: Checkout repository
         uses: actions/checkout@v4
 
