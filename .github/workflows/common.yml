@@ -1,0 +1,30 @@
+name: Send Slack Notification
+
+on:
+  workflow_call:
+    inputs:
+      color:
+        required: true
+        type: string
+      message:
+        required: true
+        type: string
+      title:
+        required: true
+        type: string
+
+jobs:
+  send-notification:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send message to Slack
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_COLOR: ${{ inputs.color }}
+          SLACK_MESSAGE: |
+            {
+              "title": "${{ inputs.title }}",
+              "logs": ${{ inputs.message }}
+            }
