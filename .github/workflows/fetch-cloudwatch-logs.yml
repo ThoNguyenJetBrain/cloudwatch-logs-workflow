@@ -94,7 +94,8 @@ jobs:
     uses: ./.github/workflows/common.yml
     with:
       color: "#FF0000"
-      message: ${{ needs.fetch-cloudwatch-logs.outputs.formatted_json }}
+      # message: ${{ needs.fetch-cloudwatch-logs.outputs.formatted_json }}
+      message: "{accs : qasd}"
       title: "CloudWatch Error Logs"
     secrets:
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
