@@ -74,6 +74,7 @@ jobs:
         run: |
           LOG_RESULTS_JSON='${{ env.LOG_RESULTS }}'
           FORMATTED_JSON=$(echo "$LOG_RESULTS_JSON" | jq -c '[.[][] | .value]')
+          echo $FORMATTED_JSON
           echo "formatted_json=$FORMATTED_JSON" >> $GITHUB_OUTPUT
 
   send-to-slack:
