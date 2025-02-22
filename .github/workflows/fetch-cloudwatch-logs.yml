@@ -72,15 +72,15 @@ jobs:
       - name: Format CloudWatch Logs for Slack
         id: format_logs
         run: |
-          LOG_RESULTS_JSON='${{ env.LOG_RESULTS }}'
+          LOG_RESULTS_JSON=$(echo '${{ env.LOG_RESULTS }}' | jq -c '.')
 
-          # Chuyển đổi JSON string thành danh sách chuẩn
+          # Chuyển đổi JSON string thành danh sách chuẩn, xử lý JSON lồng nhau
           FORMATTED_JSON=$(echo "$LOG_RESULTS_JSON" | jq -c '
             map(
-              map({key: .field, value: .value}) | from_entries
+              reduce .[] as $item ({}; .[$item.field] = $item.value)
             ) | map({
                 timestamp: (.["@timestamp"] // ""),
-                message: (.["@message"] // ""),
+                message: (.["@message"] // "" | fromjson? // .),  # Giải mã JSON nếu có
                 ptr: (.["@ptr"] // "")
             })')
 
