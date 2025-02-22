@@ -74,15 +74,15 @@ jobs:
         run: |
           LOG_RESULTS_JSON='${{ env.LOG_RESULTS }}'
 
-          # Chuyển đổi kết quả thành JSON chuẩn với các field cụ thể
+          # Chuyển đổi JSON string thành danh sách chuẩn
           FORMATTED_JSON=$(echo "$LOG_RESULTS_JSON" | jq -c '
             map(
-              {
-                timestamp: (map(select(.field == "@timestamp"))[0].value // ""),
-                message: (map(select(.field == "@message"))[0].value // ""),
-                ptr: (map(select(.field == "@ptr"))[0].value // "")
-              }
-            )')
+              map({key: .field, value: .value}) | from_entries
+            ) | map({
+                timestamp: (.["@timestamp"] // ""),
+                message: (.["@message"] // ""),
+                ptr: (.["@ptr"] // "")
+            })')
 
           echo "formatted_json=$FORMATTED_JSON" >> $GITHUB_OUTPUT
           echo "LOG_RESULTS_JSON=$LOG_RESULTS_JSON"
