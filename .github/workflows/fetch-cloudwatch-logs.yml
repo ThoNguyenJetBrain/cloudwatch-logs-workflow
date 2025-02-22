@@ -80,7 +80,7 @@ jobs:
               reduce .[] as $item ({}; .[$item.field] = $item.value)
             ) | map({
                 timestamp: (.["@timestamp"] // ""),
-                message: (.["@message"] | tostring),  # Luôn giữ message là chuỗi string
+                message: (.["@message"] | @json),
                 ptr: (.["@ptr"] // "")
             })')
 
