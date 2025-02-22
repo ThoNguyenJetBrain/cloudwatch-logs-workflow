@@ -20,11 +20,13 @@ on:
 jobs:
   fetch-cloudwatch-logs:
     runs-on: ubuntu-latest
+    outputs:
+      formatted_json: ${{ steps.format_logs.outputs.formatted_json }}
 
     steps:
-      - name: Debug Environemnt variables
+      - name: Debug Environment variables
         run: env
-    
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -39,10 +41,8 @@ jobs:
         run: |
           START_TIME="${{ github.event.inputs.start_time }}"
           END_TIME="${{ github.event.inputs.end_time }}"
-
           START_EPOCH=$(date -d "$START_TIME" +%s)
           END_EPOCH=$(date -d "$END_TIME" +%s)
-
           echo "START_EPOCH=$START_EPOCH" >> $GITHUB_ENV
           echo "END_EPOCH=$END_EPOCH" >> $GITHUB_ENV
 
@@ -51,15 +51,10 @@ jobs:
           LOG_GROUP_NAME="/aws/lambda/test-S3-lambda-first"
           SEARCH_STRING="${{ github.event.inputs.search_string }}"
           MAX_ITEMS="${{ github.event.inputs.max_items }}"
-
           ESCAPED_SEARCH_STRING=$(echo "$SEARCH_STRING" | sed 's/"/\\"/g')
-
           QUERY="fields @timestamp, @message | filter (@message like '${ESCAPED_SEARCH_STRING}') | sort @timestamp desc | limit ${MAX_ITEMS}"
-
           QUERY_ID=$(aws logs start-query --log-group-name "$LOG_GROUP_NAME" --query-string "$QUERY" --start-time "$START_EPOCH" --end-time "$END_EPOCH" --query 'queryId' --output text)
-
           echo "QUERY_ID=$QUERY_ID" >> $GITHUB_ENV
-
           for i in {1..24}; do  
             QUERY_STATUS=$(aws logs get-query-results --query-id "$QUERY_ID" --query 'status' --output text)
             if [[ "$QUERY_STATUS" == "Complete" ]]; then
@@ -70,25 +65,21 @@ jobs:
             fi
             sleep 5
           done
-
           RESULTS_JSON=$(aws logs get-query-results --query-id "$QUERY_ID")
           LOG_RESULTS=$(echo "$RESULTS_JSON" | jq -c '.results')
-
           echo "LOG_RESULTS=$LOG_RESULTS" >> $GITHUB_ENV
 
       - name: Format CloudWatch Logs for Slack
+        id: format_logs
         run: |
           LOG_RESULTS_JSON='${{ env.LOG_RESULTS }}'
-
-          # Parse JSON và chỉ lấy giá trị "value"
           FORMATTED_JSON=$(echo "$LOG_RESULTS_JSON" | jq -c '[.[][] | .value]')
-
-          echo "FORMATTED_JSON=$FORMATTED_JSON" >> $GITHUB_ENV
+          echo "formatted_json=$FORMATTED_JSON" >> $GITHUB_OUTPUT
 
   send-to-slack:
     needs: fetch-cloudwatch-logs
     uses: ./.github/workflows/common.yml
     with:
       color: "#FF0000"
-      message: ${{ env.FORMATTED_JSON }}
+      message: ${{ needs.fetch-cloudwatch-logs.outputs.formatted_json }}
       title: "CloudWatch Error Logs"
