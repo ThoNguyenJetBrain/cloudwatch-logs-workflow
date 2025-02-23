@@ -59,14 +59,14 @@ jobs:
           MAX_ITEMS="${{ github.event.inputs.max_items }}"
           ESCAPED_SEARCH_STRING=$(echo "$SEARCH_STRING" | sed 's/"/\\"/g')
           QUERY="fields @timestamp, @message | filter (@message like '${ESCAPED_SEARCH_STRING}') | sort @timestamp desc | limit ${MAX_ITEMS}"
-
+      
           QUERY_ID=$(aws logs start-query --log-group-name "$LOG_GROUP_NAME" --query-string "$QUERY" --start-time "$START_EPOCH" --end-time "$END_EPOCH" --query 'queryId' --output text)
-
+      
           if [[ -z "$QUERY_ID" ]]; then
             echo "❌ ERROR: Failed to start CloudWatch query!"
             exit 1
           fi
-
+      
           echo "QUERY_ID=$QUERY_ID" >> $GITHUB_ENV
           
           for i in {1..24}; do  
@@ -83,24 +83,28 @@ jobs:
           RESULTS_JSON=$(aws logs get-query-results --query-id "$QUERY_ID")
           LOG_RESULTS=$(echo "$RESULTS_JSON" | jq -c '.results')
           echo "LOG_RESULTS=$LOG_RESULTS" >> $GITHUB_ENV
-
+      
       - name: Format CloudWatch Logs for Slack
         id: format_logs
         run: |
           echo "LOG_RESULTS=${{ env.LOG_RESULTS }}"
           echo "tesssst log start"
-
-          # Chuyển đổi LOG_RESULTS thành JSON hợp lệ
-          LOG_RESULTS_JSON=$(echo '${{ env.LOG_RESULTS }}' | jq -c '. | flatten | map({ (.field): .value }) | add')
-
+      
+          # Chuyển đổi LOG_RESULTS thành JSON hợp lệ và giải mã @message nếu có
+          LOG_RESULTS_JSON=$(echo '${{ env.LOG_RESULTS }}' | jq -c '
+            map({ (.field): .value }) | add
+            | if .["@message"] | fromjson? then .["@message"] |= fromjson else . end
+          ')
+      
           echo "LOG_RESULTS_JSON=$LOG_RESULTS_JSON"
-
+      
           FORMATTED_JSON=$LOG_RESULTS_JSON
-
+      
           echo "FORMATTED_JSON=$FORMATTED_JSON"
           echo "formatted_json=$FORMATTED_JSON" >> $GITHUB_OUTPUT
-
+      
           echo "test log end"
+
 
 
   send-to-slack:
