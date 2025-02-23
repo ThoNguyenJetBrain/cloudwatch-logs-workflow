@@ -71,6 +71,21 @@ jobs:
           LOG_RESULTS=$(echo "$RESULTS_JSON" | jq -c '.results')
           echo "LOG_RESULTS=$LOG_RESULTS" >> $GITHUB_ENV
 
+      - name: Parse and Format Logs
+        id: parse_logs
+        run: |
+          echo "LOG_RESULTS=${{ env.LOG_RESULTS }}"
+          echo "tesssst log start Parse and Format Logs"
+
+          # Chuyển đổi LOG_RESULTS thành JSON hợp lệ
+          LOG_RESULTS_JSON=$(echo '${{ env.LOG_RESULTS }}' | jq -c '. | flatten | map({ (.field): .value }) | add')
+
+          echo "LOG_RESULTS_JSON=$LOG_RESULTS_JSON"
+          echo "formatted_json=$LOG_RESULTS_JSON" >> $GITHUB_OUTPUT
+
+          echo "test log end Parse and Format Logs"
+
+
       - name: Format CloudWatch Logs for Slack
         id: format_logs
         run: |
