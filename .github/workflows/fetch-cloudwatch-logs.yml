@@ -98,8 +98,9 @@ jobs:
       
           echo "LOG_RESULTS_JSON=$LOG_RESULTS_JSON"
       
-          FORMATTED_JSON=$LOG_RESULTS_JSON
-      
+          #FORMATTED_JSON=$LOG_RESULTS_JSON
+          FORMATTED_JSON=$(echo "$LOG_RESULTS_JSON" | jq -c .)
+          
           echo "FORMATTED_JSON=$FORMATTED_JSON"
           echo "formatted_json=$FORMATTED_JSON" >> $GITHUB_ENV
 
