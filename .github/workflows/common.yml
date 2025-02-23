@@ -29,5 +29,5 @@ jobs:
           SLACK_MESSAGE: |
             {
               "title": "${{ inputs.title }}",
-              "logs": ${{ toJson(inputs.message) }}
+              "logs": ${{ inputs.message }}
             }
