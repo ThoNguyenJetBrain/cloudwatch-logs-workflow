@@ -76,23 +76,24 @@ jobs:
         run: |
           echo "LOG_RESULTS=${{ env.LOG_RESULTS }}"
           echo "tesssst log start"
-          echo '[{"field":"@timestamp","value":"2025-02-11 15:48:48.953"},{"field":"@message","value":"123 abc data log"}]' | jq -c 'map({ (.field): .value }) | add'
-          echo "test log end"
-          LOG_RESULTS_JSON=$(echo '${{ env.LOG_RESULTS }}' | jq -c '.')
+          
+          LOG_RESULTS_JSON=$(echo '${{ env.LOG_RESULTS }}' | jq -c '.[0]')
+          echo "LOG_RESULTS_JSON=$LOG_RESULTS_JSON"
 
-          # Chuyển đổi JSON thành danh sách chuẩn, giữ nguyên message dưới dạng string
           FORMATTED_JSON=$(echo "$LOG_RESULTS_JSON" | jq -c '
             map(
               map({ (.field): .value }) | add
             ) | map({
-                timestamp: (.["@timestamp"] // ""),
-                message: (try (.["@message"] | fromjson) catch .["@message"]),  # Parse JSON nếu có
-                ptr: (.["@ptr"] // "")
-            })')
-
-          echo "formatted_json=$FORMATTED_JSON" >> $GITHUB_OUTPUT
-          echo "LOG_RESULTS_JSON=$LOG_RESULTS_JSON"
+              timestamp: .["@timestamp"],
+              message: (try (.["@message"] | fromjson) catch .["@message"]), 
+              ptr: .["@ptr"]
+            })'
+          )
+          
           echo "FORMATTED_JSON=$FORMATTED_JSON"
+          echo "formatted_json=$FORMATTED_JSON" >> $GITHUB_OUTPUT
+
+          echo "test log end"
 
   send-to-slack:
     needs: fetch-cloudwatch-logs
