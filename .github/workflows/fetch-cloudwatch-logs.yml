@@ -79,9 +79,9 @@ jobs:
           reduce .[] as $item ({}; .[$item.field] = $item.value)
           ) | map({
             timestamp: (.["@timestamp"] // ""),
-            message: (.["@message"] | @json),  # Chuyển message thành chuỗi JSON
+            message: (.["@message"] | fromjson? // .["@message"]),  # Loại bỏ escape dư
             ptr: (.["@ptr"] // "")
-          })' | jq -R '.')  # Bọc toàn bộ JSON vào string hợp lệ
+          })')
 
           echo "formatted_json=$FORMATTED_JSON" >> $GITHUB_OUTPUT
           echo "LOG_RESULTS_JSON=$LOG_RESULTS_JSON"
