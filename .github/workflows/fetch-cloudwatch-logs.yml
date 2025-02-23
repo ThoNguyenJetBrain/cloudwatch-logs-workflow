@@ -112,7 +112,7 @@ jobs:
 
       - name: Prepare Slack Message
         id: format_message
-        run: echo "LOG_MESSAGE=${{ steps.format_logs.outputs.formatted_json }}" >> $GITHUB_ENV
+        run: echo "LOG_MESSAGE=${{ steps.format_logs.outputs.formatted_json }}"
         
   confirm-before-send-Slack:
     needs: fetch-cloudwatch-logs
