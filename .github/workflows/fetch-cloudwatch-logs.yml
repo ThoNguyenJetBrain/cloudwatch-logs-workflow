@@ -98,14 +98,15 @@ jobs:
       
           echo "LOG_RESULTS_JSON=$LOG_RESULTS_JSON"
       
-          #FORMATTED_JSON=$LOG_RESULTS_JSON
-          FORMATTED_JSON=$(echo "$LOG_RESULTS_JSON" | jq -c .)
-          
+          FORMATTED_JSON=$LOG_RESULTS_JSON
+          #FORMATTED_JSON=$(echo "$LOG_RESULTS_JSON" | jq -c .)
+
           echo "FORMATTED_JSON=$FORMATTED_JSON"
           echo "formatted_json=$FORMATTED_JSON" >> $GITHUB_ENV
 
           # Ghi output đúng cách
-          echo "formatted_json=$FORMATTED_JSON" >> $GITHUB_OUTPUT
+          #echo "formatted_json=$FORMATTED_JSON" >> $GITHUB_OUTPUT
+          echo "formatted_json=$(echo "$FORMATTED_JSON" | jq -c .)" >> $GITHUB_OUTPUT
       
           echo "test log end"
 
