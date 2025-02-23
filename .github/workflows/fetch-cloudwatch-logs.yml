@@ -113,21 +113,31 @@ jobs:
       #
       #    echo "test log end"
       
-      - name: Save formatted logs to output
+      #- name: Save formatted logs to output
+      #  id: format_logs
+      #  run: |
+      #    FORMATTED_JSON=$(echo '${{ env.LOG_RESULTS }}' | jq -c .)
+      #    
+      #    # Debug giá trị trước khi lưu
+      #    echo "FORMATTED_JSON=$FORMATTED_JSON"
+      #
+      #    # Cách đúng để lưu vào output
+      #    {
+      #      echo "formatted_json<<EOF"
+      #      echo "$FORMATTED_JSON"
+      #      echo "EOF"
+      #    } >> "$GITHUB_OUTPUT"
+
+      - name: Test with Fake Data
         id: format_logs
         run: |
-          FORMATTED_JSON=$(echo '${{ env.LOG_RESULTS }}' | jq -c .)
-          
-          # Debug giá trị trước khi lưu
-          echo "FORMATTED_JSON=$FORMATTED_JSON"
-      
-          # Cách đúng để lưu vào output
+          FORMATTED_JSON='{"test": "hello world"}'
           {
             echo "formatted_json<<EOF"
             echo "$FORMATTED_JSON"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
-          
+      
       - name: Prepare Slack Message
         id: format_message
         run: echo "LOG_MESSAGE=${{ steps.format_logs.outputs.formatted_json }}"
