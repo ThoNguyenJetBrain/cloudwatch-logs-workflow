@@ -76,8 +76,8 @@ jobs:
 
           FORMATTED_JSON=$(echo '${{ env.LOG_RESULTS }}' | jq -c '
           map(
-          map({ (.field): .value })  # Biến mỗi cặp field-value thành object
-          | add                      # Gom tất cả object trong mảng con thành một object duy nhất
+            map({ (.field): .value })  # Biến mỗi cặp field-value thành object
+            | add                      # Gom tất cả object trong mảng con thành một object duy nhất
           ) | map({
             timestamp: (.["@timestamp"] // ""),
             message: (.["@message"] | fromjson? // .["@message"]),  # Xử lý JSON trong message nếu có
