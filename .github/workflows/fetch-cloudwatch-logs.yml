@@ -101,13 +101,16 @@ jobs:
           FORMATTED_JSON=$LOG_RESULTS_JSON
       
           echo "FORMATTED_JSON=$FORMATTED_JSON"
+          echo "formatted_json=$FORMATTED_JSON" >> $GITHUB_ENV
+
+          # Ghi output đúng cách
           echo "formatted_json=$FORMATTED_JSON" >> $GITHUB_OUTPUT
       
           echo "test log end"
 
       - name: Prepare Slack Message
         id: format_message
-        run: echo "LOG_MESSAGE=$(echo '${{ env.LOG_RESULTS_JSON }}' | jq -c .)" >> $GITHUB_ENV
+        run: echo "LOG_MESSAGE=${{ steps.format_logs.outputs.formatted_json }} >> $GITHUB_ENV
         
   confirm-before-send-Slack:
     needs: fetch-cloudwatch-logs
