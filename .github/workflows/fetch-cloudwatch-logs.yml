@@ -55,6 +55,7 @@ jobs:
           QUERY="fields @timestamp, @message | filter (@message like '${ESCAPED_SEARCH_STRING}') | sort @timestamp desc | limit ${MAX_ITEMS}"
           QUERY_ID=$(aws logs start-query --log-group-name "$LOG_GROUP_NAME" --query-string "$QUERY" --start-time "$START_EPOCH" --end-time "$END_EPOCH" --query 'queryId' --output text)
           echo "QUERY_ID=$QUERY_ID" >> $GITHUB_ENV
+          
           for i in {1..24}; do  
             QUERY_STATUS=$(aws logs get-query-results --query-id "$QUERY_ID" --query 'status' --output text)
             if [[ "$QUERY_STATUS" == "Complete" ]]; then
@@ -65,6 +66,7 @@ jobs:
             fi
             sleep 5
           done
+          
           RESULTS_JSON=$(aws logs get-query-results --query-id "$QUERY_ID")
           LOG_RESULTS=$(echo "$RESULTS_JSON" | jq -c '.results')
           echo "LOG_RESULTS=$LOG_RESULTS" >> $GITHUB_ENV
@@ -74,20 +76,19 @@ jobs:
         run: |
           LOG_RESULTS_JSON=$(echo '${{ env.LOG_RESULTS }}' | jq -c '.')
 
-          FORMATTED_JSON=$(echo '${{ env.LOG_RESULTS }}' | jq -c '
-          map(
-            map({ (.field): .value })  # Biến mỗi cặp field-value thành object
-            | add                      # Gom tất cả object trong mảng con thành một object duy nhất
-          ) | map({
-            timestamp: (.["@timestamp"] // ""),
-            message: (.["@message"] | fromjson? // .["@message"]),  # Xử lý JSON trong message nếu có
-            ptr: (.["@ptr"] // "")
-          })')
+          # Chuyển đổi JSON thành danh sách chuẩn, giữ nguyên message dưới dạng string
+          FORMATTED_JSON=$(echo "$LOG_RESULTS_JSON" | jq -c '
+            map(
+              map({ (.field): .value }) | add
+            ) | map({
+                timestamp: (.["@timestamp"] // ""),
+                message: (try (.["@message"] | fromjson) catch .["@message"]),  # Parse JSON nếu có
+                ptr: (.["@ptr"] // "")
+            })')
 
           echo "formatted_json=$FORMATTED_JSON" >> $GITHUB_OUTPUT
           echo "LOG_RESULTS_JSON=$LOG_RESULTS_JSON"
           echo "FORMATTED_JSON=$FORMATTED_JSON"
-
 
   send-to-slack:
     needs: fetch-cloudwatch-logs
@@ -95,7 +96,6 @@ jobs:
     with:
       color: "#FF0000"
       message: ${{ needs.fetch-cloudwatch-logs.outputs.formatted_json }}
-      # message: "[{ascasc}]"
       title: "CloudWatch Error Logs"
     secrets:
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
