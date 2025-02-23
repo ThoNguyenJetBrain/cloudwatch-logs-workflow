@@ -23,6 +23,7 @@ jobs:
     steps:
       - name: Confirm Data before Send Slack
         run: |
+          echo "${{ inputs.message }}"
           echo "${{ toJson(inputs.message) }}"
           
       - name: Send message to Slack
