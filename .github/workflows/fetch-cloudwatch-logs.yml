@@ -105,6 +105,9 @@ jobs:
       
           echo "test log end"
 
+      - name: Prepare Slack Message
+        id: format_message
+        run: echo "LOG_MESSAGE=$(echo '${{ env.LOG_RESULTS_JSON }}' | jq -c .)" >> $GITHUB_ENV
 
 
   send-to-slack:
