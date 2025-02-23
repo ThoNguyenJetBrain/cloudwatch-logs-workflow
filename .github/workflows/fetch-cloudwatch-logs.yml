@@ -92,7 +92,7 @@ jobs:
       
           # Chuyển đổi LOG_RESULTS thành JSON hợp lệ và giải mã @message nếu có
           LOG_RESULTS_JSON=$(echo '${{ env.LOG_RESULTS }}' | jq -c '
-            map({ (.field): .value }) | add
+            map(flatten) | flatten | map({ (.field): .value }) | add
             | if .["@message"] | fromjson? then .["@message"] |= fromjson else . end
           ')
       
