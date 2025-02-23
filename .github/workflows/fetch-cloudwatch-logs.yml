@@ -74,6 +74,10 @@ jobs:
       - name: Format CloudWatch Logs for Slack
         id: format_logs
         run: |
+          echo "LOG_RESULTS=${{ env.LOG_RESULTS }}"
+          echo "tesssst log start"
+          echo '[{"field":"@timestamp","value":"2025-02-11 15:48:48.953"},{"field":"@message","value":"123 abc data log"}]' | jq -c 'map({ (.field): .value }) | add'
+          echo "test log end"
           LOG_RESULTS_JSON=$(echo '${{ env.LOG_RESULTS }}' | jq -c '.')
 
           # Chuyển đổi JSON thành danh sách chuẩn, giữ nguyên message dưới dạng string
