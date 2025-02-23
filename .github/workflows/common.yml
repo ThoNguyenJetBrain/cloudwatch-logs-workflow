@@ -21,6 +21,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Confirm Data before Send Slack
+        run: |
+          echo "${{ toJson(inputs.message) }}"
+          
       - name: Send message to Slack
         uses: rtCamp/action-slack-notify@v2
         env:
