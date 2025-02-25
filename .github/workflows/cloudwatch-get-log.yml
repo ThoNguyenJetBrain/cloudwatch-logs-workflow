@@ -83,22 +83,26 @@ jobs:
 
         QUERY_RESULTS=$(aws logs get-query-results --query-id "$QUERY_ID")
         echo "QUERY_RESULTS=$QUERY_RESULTS"
-        #PROCESSED_RESULTS=$(echo "$QUERY_RESULTS" | jq -c '.results[] | {timestamp: .[0].value, message: (.[] | select(.field == "@message").value | gsub("\"";"") | gsub(": ";":") | gsub(", ";",")), logStream: (.[] | select(.field == "@logStream").value), log: (.[] | select(.field == "@log").value)}')
+        PROCESSED_RESULTS=$(echo "$QUERY_RESULTS" | jq -c '.results[] | {timestamp: .[0].value, message: (.[] | select(.field == "@message").value | gsub("\"";"") | gsub(": ";":") | gsub(", ";",")), logStream: (.[] | select(.field == "@logStream").value), log: (.[] | select(.field == "@log").value)}')
+        echo "PROCESSED_RESULTS=$PROCESSED_RESULTS"
+
+        # Cách 2 
+        #PROCESSED_RESULTS=$(echo "$QUERY_RESULTS" | jq -c '.results[] | 
+        #{timestamp: .[0].value, 
+        # message: (.[] | select(.field == "@message").value | gsub("\""; "\\\"")), 
+        # logStream: (.[] | select(.field == "@logStream").value), 
+        # log: (.[] | select(.field == "@log").value)
+        #}')
         #echo "PROCESSED_RESULTS=$PROCESSED_RESULTS"
 
-        PROCESSED_RESULTS=$(echo "$QUERY_RESULTS" | jq -c '.results[] | 
-        {timestamp: .[0].value, 
-         message: (.[] | select(.field == "@message").value | gsub("\""; "\\\"")), 
-         logStream: (.[] | select(.field == "@logStream").value), 
-         log: (.[] | select(.field == "@log").value)
-        }')
-        echo "PROCESSED_RESULTS=$PROCESSED_RESULTS"
+        #cách 3
+        ENCODED_RESULTS=$(echo "$PROCESSED_RESULTS" | base64 -w 0)
         
         # Check empty
-        if [ -z "$PROCESSED_RESULTS" ]; then
+        if [ -z "$ENCODED_RESULTS" ]; then
           echo "formatted_json=No data" >> $GITHUB_OUTPUT
         else
-          echo "formatted_json=$PROCESSED_RESULTS" >> $GITHUB_OUTPUT
+          echo "formatted_json=$ENCODED_RESULTS" >> $GITHUB_OUTPUT
         fi
 
 
@@ -107,4 +111,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Debug Slack Message
-      run: echo "SLACK_MESSAGE=${{ needs.fetch-cloudwatch-logs.outputs.formatted_json }}"
+      #run: echo "SLACK_MESSAGE=${{ needs.fetch-cloudwatch-logs.outputs.formatted_json }}"
+      run: echo "SLACK_MESSAGE=$(echo '${{ needs.fetch-cloudwatch-logs.outputs.formatted_json }}' | base64 -d)"
+
