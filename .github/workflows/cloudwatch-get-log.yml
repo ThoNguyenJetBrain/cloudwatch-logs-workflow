@@ -21,7 +21,7 @@ jobs:
   fetch-cloudwatch-logs:
     runs-on: ubuntu-latest
     outputs:
-      formatted_json: ${{ steps.fetch_logs.outputs.formatted_json }}
+      json_output: ${{ steps.fetch_logs.outputs.formatted_json }}
 
     steps:
     - name: Debug Environment variables
@@ -99,4 +99,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Debug Slack Message
-      run: echo "SLACK_MESSAGE=${{ needs.fetch-cloudwatch-logs.outputs.formatted_json }}"
+      run: echo "SLACK_MESSAGE=${{ needs.fetch-cloudwatch-logs.outputs.json_output }}"
