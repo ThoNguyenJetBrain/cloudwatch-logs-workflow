@@ -23,26 +23,14 @@ jobs:
     steps:
       - name: Decode Base64 message
         run: |
-          DECODED_MESSAGE=$(echo "${{ inputs.message }}" | base64 -d)
           echo "DECODED_MESSAGE<<EOF" >> $GITHUB_ENV
-          echo "$DECODED_MESSAGE" >> $GITHUB_ENV
+          echo "${{ inputs.message }}" | base64 -d >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
       - name: Confirm Data before Send Slack
         run: |
           echo "Decoded Message:"
-          echo "$DECODED_MESSAGE"
-
-      #- name: Send message to Slack
-      #  uses: rtCamp/action-slack-notify@v2
-      #  env:
-      #    SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-      #    SLACK_COLOR: ${{ inputs.color }}
-      #    SLACK_MESSAGE: |
-      #      {
-      #        "title": "${{ inputs.title }}",
-      #        "logs": "$DECODED_MESSAGE"
-      #      }
+          echo "${{ env.DECODED_MESSAGE }}"
 
       - name: Send message to Slack
         uses: rtCamp/action-slack-notify@v2
@@ -50,13 +38,9 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_COLOR: ${{ inputs.color }}
           SLACK_TITLE: ${{ inputs.title }}
-          run: |
-            SLACK_MESSAGE=$(jq -n \
-            --arg title "$SLACK_TITLE" \
-            --arg logs "$DECODED_MESSAGE" \
-            '{title: $title, logs: $logs}')
-          
-            echo "Final Slack Message:"
-            echo "$SLACK_MESSAGE"
-          
-          curl -X POST -H 'Content-type: application/json' --data "$SLACK_MESSAGE" $SLACK_WEBHOOK
+          SLACK_MESSAGE: |
+            *${{ inputs.title }}*
+            ```json
+            ${{ env.DECODED_MESSAGE }}
+            ```
+
