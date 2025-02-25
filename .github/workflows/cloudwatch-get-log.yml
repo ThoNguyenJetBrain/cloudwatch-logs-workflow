@@ -83,8 +83,18 @@ jobs:
 
         QUERY_RESULTS=$(aws logs get-query-results --query-id "$QUERY_ID")
         echo "QUERY_RESULTS=$QUERY_RESULTS"
-        PROCESSED_RESULTS=$(echo "$QUERY_RESULTS" | jq -c '.results[] | {timestamp: .[0].value, message: (.[] | select(.field == "@message").value | gsub("\"";"") | gsub(": ";":") | gsub(", ";",")), logStream: (.[] | select(.field == "@logStream").value), log: (.[] | select(.field == "@log").value)}')
-        echo "PROCESSED_RESULTS=$PROCESSED_RESULTS"
+        #PROCESSED_RESULTS=$(echo "$QUERY_RESULTS" | jq -c '.results[] | {timestamp: .[0].value, message: (.[] | select(.field == "@message").value | gsub("\"";"") | gsub(": ";":") | gsub(", ";",")), logStream: (.[] | select(.field == "@logStream").value), log: (.[] | select(.field == "@log").value)}')
+        #echo "PROCESSED_RESULTS=$PROCESSED_RESULTS"
+
+        PROCESSED_RESULTS=$(echo "$QUERY_RESULTS" | jq -c '.results[] | 
+        {timestamp: .[0].value, 
+         message: (.[] | select(.field == "@message").value | gsub("\""; "\\\"")), 
+         logStream: (.[] | select(.field == "@logStream").value), 
+         log: (.[] | select(.field == "@log").value)
+        }')
+        echo "formatted_json=$PROCESSED_RESULTS" >> $GITHUB_OUTPUT
+
+        
         # Check empty
         if [ -z "$PROCESSED_RESULTS" ]; then
           echo "formatted_json=No data" >> $GITHUB_OUTPUT
