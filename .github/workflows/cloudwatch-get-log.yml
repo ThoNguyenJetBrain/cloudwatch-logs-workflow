@@ -94,7 +94,7 @@ jobs:
         }')
         echo "formatted_json=$PROCESSED_RESULTS" >> $GITHUB_OUTPUT
 
-        
+        echo "empty check !!!!!!!!!!"
         # Check empty
         if [ -z "$PROCESSED_RESULTS" ]; then
           echo "formatted_json=No data" >> $GITHUB_OUTPUT
