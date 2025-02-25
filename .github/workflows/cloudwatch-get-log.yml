@@ -1,4 +1,4 @@
-name: Fetch CloudWatch Error Logs -V2
+name: Fetch CloudWatch Error Logs -V3
 
 on:
   workflow_dispatch:
