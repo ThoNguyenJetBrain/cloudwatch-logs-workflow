@@ -105,12 +105,13 @@ jobs:
           echo "formatted_json=$ENCODED_RESULTS" >> $GITHUB_OUTPUT
         fi
 
-
-  confirm-before-send-Slack:
+  send-to-slack:
     needs: fetch-cloudwatch-logs
-    runs-on: ubuntu-latest
-    steps:
-    - name: Debug Slack Message
-      #run: echo "SLACK_MESSAGE=${{ needs.fetch-cloudwatch-logs.outputs.formatted_json }}"
-      run: echo "SLACK_MESSAGE=$(echo '${{ needs.fetch-cloudwatch-logs.outputs.formatted_json }}' | base64 -d)"
+    uses: ./.github/workflows/common.yml
+    with:
+      color: "#FF0000"
+      message: ${{ needs.fetch-cloudwatch-logs.outputs.formatted_json }}
+      title: "CloudWatch Error Logs"
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
 
