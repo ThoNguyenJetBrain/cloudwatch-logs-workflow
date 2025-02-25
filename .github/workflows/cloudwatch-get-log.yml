@@ -82,7 +82,9 @@ jobs:
         done
 
         QUERY_RESULTS=$(aws logs get-query-results --query-id "$QUERY_ID")
+        echo "QUERY_RESULTS=$QUERY_RESULTS"
         PROCESSED_RESULTS=$(echo "$QUERY_RESULTS" | jq -c '.results[] | {timestamp: .[0].value, message: (.[] | select(.field == "@message").value | gsub("\"";"") | gsub(": ";":") | gsub(", ";",")), logStream: (.[] | select(.field == "@logStream").value), log: (.[] | select(.field == "@log").value)}')
+        
         # Check empty
         if [ -z "$PROCESSED_RESULTS" ]; then
           echo "formatted_json=No data" >> $GITHUB_OUTPUT
