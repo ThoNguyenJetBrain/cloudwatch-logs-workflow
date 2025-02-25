@@ -21,11 +21,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Decode Base64 message
+        run: |
+          DECODED_MESSAGE=$(echo "${{ inputs.message }}" | base64 -d)
+          echo "DECODED_MESSAGE<<EOF" >> $GITHUB_ENV
+          echo "$DECODED_MESSAGE" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
       - name: Confirm Data before Send Slack
         run: |
-          echo "${{ inputs.message }}"
-          echo "${{ toJson(inputs.message) }}"
-          
+          echo "Decoded Message:"
+          echo "$DECODED_MESSAGE"
+
       - name: Send message to Slack
         uses: rtCamp/action-slack-notify@v2
         env:
@@ -34,5 +41,5 @@ jobs:
           SLACK_MESSAGE: |
             {
               "title": "${{ inputs.title }}",
-              "logs": "${{ toJson(inputs.message) }}"
+              "logs": "$DECODED_MESSAGE"
             }
