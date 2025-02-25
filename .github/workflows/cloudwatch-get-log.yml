@@ -92,9 +92,8 @@ jobs:
          logStream: (.[] | select(.field == "@logStream").value), 
          log: (.[] | select(.field == "@log").value)
         }')
-        echo "formatted_json=$PROCESSED_RESULTS" >> $GITHUB_OUTPUT
-
-        echo "empty check !!!!!!!!!!"
+        echo "PROCESSED_RESULTS=$PROCESSED_RESULTS"
+        
         # Check empty
         if [ -z "$PROCESSED_RESULTS" ]; then
           echo "formatted_json=No data" >> $GITHUB_OUTPUT
