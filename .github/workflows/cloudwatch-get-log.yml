@@ -1,0 +1,102 @@
+name: Fetch CloudWatch Error Logs -V3
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_items:
+        description: 'Số lượng items tối đa trả về'
+        required: true
+        default: '10'
+      search_string:
+        description: 'Chuỗi cần tìm trong @message'
+        required: true
+      start_time:
+        description: 'Thời gian bắt đầu (YYYY-MM-DD HH:MM:SS UTC)'
+        required: true
+      end_time:
+        description: 'Thời gian kết thúc (YYYY-MM-DD HH:MM:SS UTC)'
+        required: true
+
+jobs:
+  fetch-cloudwatch-logs:
+    runs-on: ubuntu-latest
+    outputs:
+      formatted_json: ${{ steps.format_logs.outputs.formatted_json }}
+
+    steps:
+    - name: Debug Environment variables
+      run: env
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-southeast-1
+
+    - name: Convert Start Time and End Time to Epoch
+      run: |
+        START_TIME="${{ github.event.inputs.start_time }}"
+        END_TIME="${{ github.event.inputs.end_time }}"
+        START_EPOCH=$(TZ=UTC date -d "$START_TIME" +%s || echo "")
+        END_EPOCH=$(TZ=UTC date -d "$END_TIME" +%s || echo "")
+
+        if [[ -z "$START_EPOCH" || -z "$END_EPOCH" ]]; then
+          echo "❌ ERROR: Invalid date format!"
+          exit 1
+        fi
+
+        echo "START_EPOCH=$START_EPOCH" >> $GITHUB_ENV
+        echo "END_EPOCH=$END_EPOCH" >> $GITHUB_ENV
+
+    - name: Fetch CloudWatch Logs
+      id: fetch_logs
+      run: |
+        LOG_GROUP_NAME="/aws/lambda/test-S3-lambda-first"
+        SEARCH_STRING="${{ github.event.inputs.search_string }}"
+        MAX_ITEMS="${{ github.event.inputs.max_items }}"
+        ESCAPED_SEARCH_STRING=$(echo "$SEARCH_STRING" | sed 's/"/\\"/g')
+        QUERY="fields @timestamp, @message | filter (@message like '${ESCAPED_SEARCH_STRING}') | sort @timestamp desc | limit ${MAX_ITEMS}"
+        
+        QUERY_ID=$(aws logs start-query --log-group-name "$LOG_GROUP_NAME" --query-string "$QUERY" --start-time "$START_EPOCH" --end-time "$END_EPOCH" --query 'queryId' --output text)
+
+        if [[ -z "$QUERY_ID" ]]; then
+          echo "❌ ERROR: Failed to start CloudWatch query!"
+          exit 1
+        fi
+
+        echo "QUERY_ID=$QUERY_ID" >> $GITHUB_ENV
+
+        for i in {1..24}; do 
+          QUERY_STATUS=$(aws logs get-query-results --query-id "$QUERY_ID" --query 'status' --output text)
+          if [[ "$QUERY_STATUS" == "Complete" ]]; then
+            break
+          elif [[ "$QUERY_STATUS" == "Failed" || "$QUERY_STATUS" == "Cancelled" ]]; then
+            echo "❌ ERROR: Query failed or was cancelled!"
+            exit 1
+          fi
+          sleep 5
+        done
+
+        QUERY_RESULTS=$(aws logs get-query-results --query-id "$QUERY_ID")
+        PROCESSED_RESULTS=$(echo "$QUERY_RESULTS" | jq -c '.results[] | {timestamp: .[0].value, message: (.[] | select(.field == "@message").value | gsub("\"";"") | gsub(": ";":") | gsub(", ";",")), logStream: .[2].value, log: (.[] | select(.field == "@log").value)}')
+        # Check empty
+        if [ -z "$PROCESSED_RESULTS" ]; then
+          echo "formatted_json=No data" >> $GITHUB_OUTPUT
+        else
+          echo "formatted_json=$PROCESSED_RESULTS" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Prepare Slack Message
+      id: format_logs
+      run: echo "LOG_MESSAGE=${{ steps.fetch_logs.outputs.formatted_json }}"
+
+  confirm-before-send-Slack:
+    needs: fetch-cloudwatch-logs
+    runs-on: ubuntu-latest
+    steps:
+    - name: Debug Slack Message
+      run: echo "SLACK_MESSAGE=${{ needs.fetch-cloudwatch-logs.outputs.formatted_json }}"
