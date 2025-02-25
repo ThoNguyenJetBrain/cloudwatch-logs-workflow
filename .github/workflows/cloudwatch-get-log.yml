@@ -4,24 +4,24 @@ on:
   workflow_dispatch:
     inputs:
       max_items:
-        description: 'Số lượng items tối đa trả về'
+        description: 'Số lượng items tối đa trả về'
         required: true
         default: '10'
       search_string:
-        description: 'Chuỗi cần tìm trong @message'
+        description: 'Chuỗi cần tìm trong @message'
         required: true
       start_time:
-        description: 'Thời gian bắt đầu (YYYY-MM-DD HH:MM:SS UTC)'
+        description: 'Thời gian bắt đầu (YYYY-MM-DD HH:MM:SS UTC)'
         required: true
       end_time:
-        description: 'Thời gian kết thúc (YYYY-MM-DD HH:MM:SS UTC)'
+        description: 'Thời gian kết thúc (YYYY-MM-DD HH:MM:SS UTC)'
         required: true
 
 jobs:
   fetch-cloudwatch-logs:
     runs-on: ubuntu-latest
     outputs:
-      json_output: ${{ steps.fetch_logs.outputs.formatted_json }}
+      formatted_json: ${{ steps.format_logs.outputs.formatted_json }}
 
     steps:
     - name: Debug Environment variables
@@ -82,7 +82,7 @@ jobs:
         done
 
         QUERY_RESULTS=$(aws logs get-query-results --query-id "$QUERY_ID")
-        PROCESSED_RESULTS=$(echo "$QUERY_RESULTS" | jq -c '.results[] | {timestamp: .[0].value, message: (.[] | select(.field == "@message").value | gsub("\"";"") | gsub(": ";":") | gsub(", ";",")), logStream: .[2].value, log: (.[] | select(.field == "@log").value)}')
+        PROCESSED_RESULTS=$(echo "$QUERY_RESULTS" | jq -c '.results[] | {timestamp: .[0].value, message: (.[] | select(.field == "@message").value | gsub("\"";"") | gsub(": ";":") | gsub(", ";",")), logStream: (.[] | select(.field == "@logStream").value), log: (.[] | select(.field == "@log").value)}')
         # Check empty
         if [ -z "$PROCESSED_RESULTS" ]; then
           echo "formatted_json=No data" >> $GITHUB_OUTPUT
@@ -91,12 +91,14 @@ jobs:
         fi
 
     - name: Prepare Slack Message
-      id: prepare-slack
-      run: echo "LOG_MESSAGE=${{ steps.fetch_logs.outputs.formatted_json }}"
+      id: format_logs
+      run: echo "formatted_json=${{ steps.fetch_logs.outputs.formatted_json }}"
+      outputs:
+        formatted_json: ${{ steps.fetch_logs.outputs.formatted_json }}
 
   confirm-before-send-Slack:
     needs: fetch-cloudwatch-logs
     runs-on: ubuntu-latest
     steps:
     - name: Debug Slack Message
-      run: echo "SLACK_MESSAGE=${{ needs.fetch-cloudwatch-logs.outputs.json_output }}"
+      run: echo "SLACK_MESSAGE=${{ needs.fetch-cloudwatch-logs.outputs.formatted_json }}"
