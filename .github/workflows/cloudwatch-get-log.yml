@@ -21,7 +21,7 @@ jobs:
   fetch-cloudwatch-logs:
     runs-on: ubuntu-latest
     outputs:
-      formatted_json: ${{ steps.format_logs.outputs.formatted_json }}
+      formatted_json: ${{ steps.fetch_logs.outputs.formatted_json }}
 
     steps:
     - name: Debug Environment variables
@@ -91,7 +91,7 @@ jobs:
         fi
 
     - name: Prepare Slack Message
-      id: format_logs
+      id: prepare-slack
       run: echo "LOG_MESSAGE=${{ steps.fetch_logs.outputs.formatted_json }}"
 
   confirm-before-send-Slack:
