@@ -59,7 +59,7 @@ jobs:
         SEARCH_STRING="${{ github.event.inputs.search_string }}"
         MAX_ITEMS="${{ github.event.inputs.max_items }}"
         ESCAPED_SEARCH_STRING=$(echo "$SEARCH_STRING" | sed 's/"/\\"/g')
-        QUERY="fields @timestamp, @message | filter (@message like '${ESCAPED_SEARCH_STRING}') | sort @timestamp desc | limit ${MAX_ITEMS}"
+        QUERY="fields @timestamp, @message, @logStream, @log | filter (@message like '${ESCAPED_SEARCH_STRING}') | sort @timestamp desc | limit ${MAX_ITEMS}"
         
         QUERY_ID=$(aws logs start-query --log-group-name "$LOG_GROUP_NAME" --query-string "$QUERY" --start-time "$START_EPOCH" --end-time "$END_EPOCH" --query 'queryId' --output text)
 
