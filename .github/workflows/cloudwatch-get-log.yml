@@ -1,27 +1,27 @@
-name: Fetch CloudWatch Error Logs -V3
+name: Fetch CloudWatch Error Logs -V2
 
 on:
   workflow_dispatch:
     inputs:
       max_items:
-        description: 'Số lượng items tối đa trả về'
+        description: 'Số lượng items tối đa trả về'
         required: true
         default: '10'
       search_string:
-        description: 'Chuỗi cần tìm trong @message'
+        description: 'Chuỗi cần tìm trong @message'
         required: true
       start_time:
-        description: 'Thời gian bắt đầu (YYYY-MM-DD HH:MM:SS UTC)'
+        description: 'Thời gian bắt đầu (YYYY-MM-DD HH:MM:SS UTC)'
         required: true
       end_time:
-        description: 'Thời gian kết thúc (YYYY-MM-DD HH:MM:SS UTC)'
+        description: 'Thời gian kết thúc (YYYY-MM-DD HH:MM:SS UTC)'
         required: true
 
 jobs:
   fetch-cloudwatch-logs:
     runs-on: ubuntu-latest
     outputs:
-      formatted_json: ${{ steps.format_logs.outputs.formatted_json }}
+      formatted_json: ${{ steps.fetch_logs.outputs.formatted_json }}
 
     steps:
     - name: Debug Environment variables
@@ -90,9 +90,6 @@ jobs:
           echo "formatted_json=$PROCESSED_RESULTS" >> $GITHUB_OUTPUT
         fi
 
-    - name: Prepare Slack Message
-      id: format_logs
-      run: echo "formatted_json=${{ steps.fetch_logs.outputs.formatted_json }}" >> $GITHUB_OUTPUT
 
   confirm-before-send-Slack:
     needs: fetch-cloudwatch-logs
