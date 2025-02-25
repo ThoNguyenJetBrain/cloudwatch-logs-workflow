@@ -92,9 +92,7 @@ jobs:
 
     - name: Prepare Slack Message
       id: format_logs
-      run: echo "formatted_json=${{ steps.fetch_logs.outputs.formatted_json }}"
-      outputs:
-        formatted_json: ${{ steps.fetch_logs.outputs.formatted_json }}
+      run: echo "formatted_json=${{ steps.fetch_logs.outputs.formatted_json }}" >> $GITHUB_OUTPUT
 
   confirm-before-send-Slack:
     needs: fetch-cloudwatch-logs
