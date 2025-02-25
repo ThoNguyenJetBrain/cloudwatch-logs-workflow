@@ -38,9 +38,10 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_COLOR: ${{ inputs.color }}
           SLACK_TITLE: ${{ inputs.title }}
+          #${{ env.DECODED_MESSAGE }}
           SLACK_MESSAGE: |
             *${{ inputs.title }}*
             ```json
-            ${{ env.DECODED_MESSAGE }}
+            $(echo "${{ inputs.message }}" | base64 -d)
             ```
 
