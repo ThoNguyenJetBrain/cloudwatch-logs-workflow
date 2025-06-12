@@ -28,13 +28,13 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-southeast-1
 
-      - name: Get CloudWatch Event Rules
+      - name: Get EventBridge Scheduler Schedules
         id: get-rules
         run: |
-          echo "Fetching CloudWatch Event Rules..."
-          RULES=$(aws events list-rules --query 'Rules[*].Name' --output json | jq -r '.[]' | jq -R . | jq -s .)
+          echo "Fetching EventBridge Scheduler Schedules..."
+          RULES=$(aws scheduler list-schedules --schedule-group-name default --query 'Schedules[*].Name' --output json | jq -r '.[]' | jq -R . | jq -s .)
           echo "{\"rules\":$RULES}" > rules.json
-          echo "Found rules: $RULES"
+          echo "Found schedules: $RULES"
 
       - name: Upload Rules List as Artifact
         uses: actions/upload-artifact@v4
