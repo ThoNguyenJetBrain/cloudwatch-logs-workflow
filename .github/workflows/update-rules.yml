@@ -21,6 +21,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # BƯỚC MỚI: Cập nhật AWS CLI lên phiên bản mới nhất
+      # Lý do: Lỗi "Unknown options: --schedule-group-name" thường do AWS CLI quá cũ
+      - name: Update AWS CLI to latest version
+        run: |
+          echo "Updating AWS CLI to the latest version..."
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install --update
+          aws --version
+          echo "AWS CLI updated."
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -28,7 +39,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }} # Sử dụng biến môi trường AWS_REGION
 
-      # BƯỚC MỚI: Xác minh AWS Credentials và Permissions
       - name: Verify AWS Identity
         run: |
           echo "Verifying AWS Caller Identity..."
@@ -61,7 +71,6 @@ jobs:
           # In danh sách các lịch trình được tìm thấy (nếu có)
           echo "Found schedules: $(echo "$FINAL_JSON" | jq -r '.rules[]' | tr '\n' ' ')"
 
-      # BƯỚC MỚI: Upload Raw Schedules List as Artifact (để debug)
       - name: Upload Raw Schedules List as Artifact
         uses: actions/upload-artifact@v4
         with:
