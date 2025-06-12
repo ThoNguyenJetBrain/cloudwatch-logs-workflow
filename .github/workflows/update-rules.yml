@@ -21,23 +21,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # BƯỚC MỚI: Cập nhật AWS CLI lên phiên bản mới nhất
-      # Lý do: Lỗi "Unknown options: --schedule-group-name" thường do AWS CLI quá cũ
-      - name: Update AWS CLI to latest version
-        run: |
-          echo "Updating AWS CLI to the latest version..."
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-          unzip awscliv2.zip
-          sudo ./aws/install --update
-          aws --version
-          echo "AWS CLI updated."
-
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }} # Sử dụng biến môi trường AWS_REGION
+          aws-cli-version: 'latest'         # BƯỚC CẬP NHẬT QUAN TRỌNG: Yêu cầu phiên bản AWS CLI mới nhất
+
+      # Bước kiểm tra phiên bản AWS CLI (tùy chọn nhưng nên giữ để debug)
+      - name: Check AWS CLI Version
+        run: aws --version
 
       - name: Verify AWS Identity
         run: |
@@ -56,12 +50,10 @@ jobs:
           
           echo "Raw AWS CLI output for schedules: $AWS_CLI_OUTPUT"
           
-          # BƯỚC MỚI: Lưu output thô vào file để debug
+          # Lưu output thô vào file để debug
           echo "$AWS_CLI_OUTPUT" > raw_rules_output.json
           
-          # BƯỚC MỚI: Đơn giản hóa lệnh jq để tạo JSON cuối cùng
-          # Đảm bảo rằng $AWS_CLI_OUTPUT là một mảng JSON hợp lệ (ví dụ: ["schedule1", "schedule2"] hoặc [])
-          # Nếu $AWS_CLI_OUTPUT rỗng hoặc không hợp lệ, jq -n --argjson sẽ xử lý nó một cách an toàn.
+          # Đơn giản hóa lệnh jq để tạo JSON cuối cùng
           FINAL_JSON=$(jq -n --argjson rules "$AWS_CLI_OUTPUT" '{"rules": $rules}')
           
           echo "$FINAL_JSON" > rules.json
@@ -76,11 +68,11 @@ jobs:
         with:
           name: raw-scheduler-schedules-output
           path: raw_rules_output.json
-          retention-days: 1 # Giữ artifact này trong 1 ngày
+          retention-days: 1
 
       - name: Upload Processed Schedules List as Artifact
         uses: actions/upload-artifact@v4
         with:
           name: scheduler-schedules
           path: rules.json
-          retention-days: 1 # Giữ artifact này trong 1 ngày
+          retention-days: 1
