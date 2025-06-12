@@ -3,15 +3,15 @@ name: Update EventBridge Scheduler List
 on:
   schedule:
     - cron: '0 0 * * *'  # Chạy hàng ngày lúc 00:00 UTC
-  workflow_dispatch:  # Cho phép chạy thủ công
+  workflow_dispatch:   # Cho phép chạy thủ công
 
 env:
   AWS_REGION: ap-southeast-1  # Thay bằng region của bạn
 
 permissions:
   contents: read
-  id-token: write  # Cần cho OIDC authentication
-  actions: write   # Cần để lưu artifact
+  id-token: write    # Cần cho OIDC authentication
+  actions: write     # Cần để lưu artifact
 
 jobs:
   update-rules:
@@ -26,19 +26,52 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-southeast-1
+          aws-region: ${{ env.AWS_REGION }} # Sử dụng biến môi trường AWS_REGION
+
+      # BƯỚC MỚI: Xác minh AWS Credentials và Permissions
+      - name: Verify AWS Identity
+        run: |
+          echo "Verifying AWS Caller Identity..."
+          aws sts get-caller-identity
+          echo "AWS Identity verified successfully. If the above command failed, check your AWS credentials and permissions."
 
       - name: Get EventBridge Scheduler Schedules
         id: get-rules
         run: |
           echo "Fetching EventBridge Scheduler Schedules..."
-          RULES=$(aws scheduler list-schedules --schedule-group-name default --query 'Schedules[*].Name' --output json | jq -r '.[]' | jq -R . | jq -s .)
-          echo "{\"rules\":$RULES}" > rules.json
-          echo "Found schedules: $RULES"
+          
+          # Lệnh AWS CLI gốc để lấy tên các lịch trình
+          # Sử dụng biến môi trường AWS_REGION
+          AWS_CLI_OUTPUT=$(aws scheduler list-schedules --schedule-group-name default --query 'Schedules[*].Name' --output json --region ${{ env.AWS_REGION }})
+          
+          echo "Raw AWS CLI output for schedules: $AWS_CLI_OUTPUT"
+          
+          # BƯỚC MỚI: Lưu output thô vào file để debug
+          echo "$AWS_CLI_OUTPUT" > raw_rules_output.json
+          
+          # BƯỚC MỚI: Đơn giản hóa lệnh jq để tạo JSON cuối cùng
+          # Đảm bảo rằng $AWS_CLI_OUTPUT là một mảng JSON hợp lệ (ví dụ: ["schedule1", "schedule2"] hoặc [])
+          # Nếu $AWS_CLI_OUTPUT rỗng hoặc không hợp lệ, jq -n --argjson sẽ xử lý nó một cách an toàn.
+          FINAL_JSON=$(jq -n --argjson rules "$AWS_CLI_OUTPUT" '{"rules": $rules}')
+          
+          echo "$FINAL_JSON" > rules.json
+          echo "Generated rules.json content:"
+          cat rules.json # In nội dung file cuối cùng ra log
+          
+          # In danh sách các lịch trình được tìm thấy (nếu có)
+          echo "Found schedules: $(echo "$FINAL_JSON" | jq -r '.rules[]' | tr '\n' ' ')"
 
-      - name: Upload Schedules List as Artifact
+      # BƯỚC MỚI: Upload Raw Schedules List as Artifact (để debug)
+      - name: Upload Raw Schedules List as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: raw-scheduler-schedules-output
+          path: raw_rules_output.json
+          retention-days: 1 # Giữ artifact này trong 1 ngày
+
+      - name: Upload Processed Schedules List as Artifact
         uses: actions/upload-artifact@v4
         with:
           name: scheduler-schedules
           path: rules.json
-          retention-days: 1
+          retention-days: 1 # Giữ artifact này trong 1 ngày
