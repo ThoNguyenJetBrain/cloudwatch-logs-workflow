@@ -1,15 +1,17 @@
-name: Toggle AWS CloudWatch Event Rule
+name: Toggle EventBridge Scheduler Schedule
 
 on:
   workflow_dispatch:
     inputs:
       rule_name:
-        description: 'Select the CloudWatch Event Rule to toggle'
+        description: 'Select the EventBridge Scheduler Schedule to toggle'
         required: true
         type: choice
-        options: []  # Sẽ được làm mới khi chạy workflow phụ
+        options: [
+          - abc
+        ]  # Sẽ được làm mới khi chạy workflow phụ
       rule_state:
-        description: 'State to set for the rule (ENABLED or DISABLED)'
+        description: 'State to set for the schedule (ENABLED or DISABLED)'
         required: true
         type: choice
         options:
@@ -18,7 +20,8 @@ on:
         default: 'ENABLED'
 
 env:
-  AWS_REGION: ap-southeast-1  # Thay bằng region của bạn
+  AWS_REGION: us-east-1  # Thay bằng region của bạn
+  SCHEDULE_GROUP: default  # Thay bằng tên schedule group của bạn
 
 permissions:
   contents: read
@@ -32,7 +35,7 @@ jobs:
       matrix:
         rule: ${{ fromJson(needs.prepare.outputs.rules).rules }}
       fail-fast: true
-      max-parallel: 1  # Chỉ chạy job cho rule được chọn
+      max-parallel: 1  # Chỉ chạy job cho schedule được chọn
 
     needs: prepare
 
@@ -45,27 +48,29 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-southeast-1
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-role  # Thay bằng ARN của IAM role
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Download Rules Artifact
+      - name: Download Schedules Artifact
         uses: actions/download-artifact@v4
         with:
-          name: cloudwatch-rules
+          name: scheduler-schedules
           path: .
 
-      - name: Toggle CloudWatch Event Rule
+      - name: Toggle EventBridge Scheduler Schedule
         run: |
-          RULE_NAME="${{ matrix.rule }}"
-          RULE_STATE="${{ github.event.inputs.rule_state }}"
-          echo "Setting rule $RULE_NAME to state $RULE_STATE"
-          if [ "$RULE_STATE" = "ENABLED" ]; then
-            aws events enable-rule --name "$RULE_NAME" --region ${{ env.AWS_REGION }}
-          else
-            aws events disable-rule --name "$RULE_NAME" --region ${{ env.AWS_REGION }}
-          fi
-          echo "Rule $RULE_NAME has been set to $RULE_STATE"
+          SCHEDULE_NAME="${{ matrix.rule }}"
+          SCHEDULE_STATE="${{ github.event.inputs.rule_state }}"
+          echo "Setting schedule $SCHEDULE_NAME to state $SCHEDULE_STATE"
+          aws scheduler update-schedule \
+            --name "$SCHEDULE_NAME" \
+            --group-name "${{ env.SCHEDULE_GROUP }}" \
+            --state "$SCHEDULE_STATE" \
+            --schedule-expression "$(aws scheduler get-schedule --name "$SCHEDULE_NAME" --group-name "${{ env.SCHEDULE_GROUP }}" --query 'ScheduleExpression' --output text)" \
+            --target "$(aws scheduler get-schedule --name "$SCHEDULE_NAME" --group-name "${{ env.SCHEDULE_GROUP }}" --query 'Target' --output json)" \
+            --flexible-time-window "{\"Mode\": \"OFF\"}" \
+            --region "${{ env.AWS_REGION }}"
+          echo "Schedule $SCHEDULE_NAME has been set to $SCHEDULE_STATE"
 
   prepare:
     runs-on: ubuntu-latest
@@ -75,13 +80,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download Rules Artifact
+      - name: Download Schedules Artifact
         uses: actions/download-artifact@v4
         with:
-          name: cloudwatch-rules
+          name: scheduler-schedules
           path: .
 
-      - name: Read Rules JSON
+      - name: Read Schedules JSON
         id: get-rules
         run: |
           RULES=$(cat rules.json)

@@ -1,4 +1,4 @@
-name: Update CloudWatch Rules List
+name: Update EventBridge Scheduler List
 
 on:
   schedule:
@@ -36,9 +36,9 @@ jobs:
           echo "{\"rules\":$RULES}" > rules.json
           echo "Found schedules: $RULES"
 
-      - name: Upload Rules List as Artifact
+      - name: Upload Schedules List as Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cloudwatch-rules
+          name: scheduler-schedules
           path: rules.json
           retention-days: 1
