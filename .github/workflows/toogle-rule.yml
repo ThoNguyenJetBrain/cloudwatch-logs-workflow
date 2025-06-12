@@ -7,9 +7,8 @@ on:
         description: 'Select the EventBridge Scheduler Schedule to toggle'
         required: true
         type: choice
-        options: [
-          - abc
-        ]  # Sẽ được làm mới khi chạy workflow phụ
+        options:
+          - placeholder-schedule  # Giá trị mặc định, sẽ được thay thế sau khi chạy workflow phụ
       rule_state:
         description: 'State to set for the schedule (ENABLED or DISABLED)'
         required: true
